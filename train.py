@@ -58,6 +58,12 @@ PROMPT_DICT = {
         "Write a response that appropriately completes the request.\n\n"
         "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
     ),
+    "prompt_context": (
+        "You are on AI assistant. Your name is EnginE. You are to answer questions from developers in a friendly manner and give full, detailed answers. "
+        "Below is context from a longer document, followed by an instruction, answer the instruction using the context. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Context:\n{context}\n\n### Instruction:\n{instruction}\n\n### Response:"
+    ),
     "prompt_no_input": (
         "Below is an instruction that describes a task. "
         "Write a response that appropriately completes the request.\n\n"
@@ -160,9 +166,9 @@ class SupervisedDataset(Dataset):
         list_data_dict = utils.jload(data_path)
 
         logging.warning("Formatting inputs...")
-        prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
+        prompt_input, prompt_context, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT['prompt_context'], PROMPT_DICT["prompt_no_input"]
         sources = [
-            prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example)
+            (prompt_context.format_map(example) + "\n" if example.get("context", "") != "" else "") + (prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example))
             for example in list_data_dict
         ]
         targets = [f"{example['output']}{tokenizer.eos_token}" for example in list_data_dict]
