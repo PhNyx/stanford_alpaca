@@ -19,15 +19,39 @@ from typing import Dict, Optional, Sequence
 
 import torch
 import transformers
+from transformers import (
+    GPT2LMHeadModel,
+    GPT2Tokenizer,
+    GPT2Config,
+    DataCollatorForLanguageModeling,
+    Trainer,
+    TrainingArguments,
+    TransfoXLLMHeadModel,
+    TransfoXLTokenizer,
+    TransfoXLConfig,
+    GenerationConfig,
+    GPTNeoXForCausalLM, 
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    AutoConfig,
+    AutoModelForQuestionAnswering,
+    GPTJForCausalLM,
+    DataCollatorForSeq2Seq,
+    StoppingCriteria,
+    StoppingCriteriaList,
+    LlamaForCausalLM, 
+    LlamaTokenizer, 
+    BitsAndBytesConfig
+)
 import utils
 from torch.utils.data import Dataset
 from transformers import Trainer
 
 IGNORE_INDEX = -100
-DEFAULT_PAD_TOKEN = "[PAD]"
-DEFAULT_EOS_TOKEN = "</s>"
-DEFAULT_BOS_TOKEN = "<s>"
-DEFAULT_UNK_TOKEN = "<unk>"
+DEFAULT_PAD_TOKEN = "<|endoftext|>"
+DEFAULT_EOS_TOKEN = "<|endoftext|>"
+DEFAULT_BOS_TOKEN = "<|endoftext|>"
+DEFAULT_UNK_TOKEN = "<|endoftext|>"
 PROMPT_DICT = {
     "prompt_input": (
         "Below is an instruction that describes a task, paired with an input that provides further context. "
@@ -44,7 +68,7 @@ PROMPT_DICT = {
 
 @dataclass
 class ModelArguments:
-    model_name_or_path: Optional[str] = field(default="facebook/opt-125m")
+    model_name_or_path: Optional[str] = field(default="EleutherAI/pythia-1.4b-deduped")
 
 
 @dataclass
@@ -55,7 +79,10 @@ class DataArguments:
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
-    optim: str = field(default="adamw_torch")
+    optim: str = field(default="adamw_apex_fused")
+    gradient_checkpointing: bool = field(default=True)
+    fp16: bool = field(default=True)
+    warmup_steps: int = field(default=64)
     model_max_length: int = field(
         default=512,
         metadata={"help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."},
@@ -186,6 +213,7 @@ def train():
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=training_args.cache_dir,
+        use_cache=False,
     )
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
